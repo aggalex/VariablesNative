@@ -1,0 +1,54 @@
+use std::str::FromStr;
+use std::string::String;
+use std::boxed::Box;
+// TODO: Make it use ast::Ast and variable::Variable
+// // use crate::actions;
+use crate::ast::Ast;
+use crate::ast::Operation;
+use crate::ast::AstData;
+use crate::ast::variable::Variable;
+use crate::request::Request;
+
+grammar;
+
+pub Statement: Request = {
+	<Evaluation> => Request::VARIABLE(<>),
+	<Print> => Request::PRINT(<>),
+	<s:Statement> <c:Comment> => s
+}
+
+Evaluation: Variable = {
+	<id: Identifier> "=" <val: Expression> => Variable::new_boxed(id, val)
+}
+
+Print: Box<AstData> = {
+	"print" <Expression>
+}
+
+Expression: Box<AstData> = {
+    Sum,
+    Factor,
+}
+
+Sum: Box<AstData> = {
+    <l:Factor> "+" <r:Factor> => Box::new(Ast::new (l, Operation::ADD, r)),
+    <l:Factor> "-" <r:Factor> => Box::new(Ast::new (l, Operation::SUB, r)),
+    <l:Sum> "+" <r:Factor> => Box::new(Ast::new (l, Operation::ADD, r)),
+    <l:Sum> "-" <r:Factor> => Box::new(Ast::new (l, Operation::SUB, r)),
+}
+
+Factor: Box<AstData> = {
+    <l:Factor> "*" <r:Term> => Box::new(Ast::new (l, Operation::MUL, r)),
+    <l:Factor> "/" <r:Term> => Box::new(Ast::new (l, Operation::DIV, r)),
+    Term
+}
+
+Term: Box<AstData> = {
+    <Num> => Box::new (<>),
+    <Identifier> => Box::new(Variable::new_read(<>)),
+    "(" <Expression> ")"
+}
+
+Num: i32 = r"[0-9]+" => i32::from_str(<>).unwrap();
+Identifier: String = r"[A-Za-z_][A-Za-z1-9_]+" => (<>).to_string ();
+Comment: () = r"#.+" => ();

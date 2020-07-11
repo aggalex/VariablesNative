@@ -1,0 +1,17 @@
+[package]
+name = "variables"
+version = "0.1.0"
+authors = ["Alex <ubuntu1aggelalex@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[build-dependencies] # <-- We added this and everything after!
+lalrpop = { version = "0.18.1", features = ["lexer"] }
+
+[dependencies]
+lalrpop-util = "0.18.1"
+regex = "1"
+
+[dependencies.llvm-alt]
+git = "https://github.com/TomBebbington/llvm-rs.git"
