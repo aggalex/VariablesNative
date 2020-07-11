@@ -1,15 +1,15 @@
-# Variables
+# VariablesNative
 A simple example of a compiler with the LLVM compiler infrastructure, Rust and the LALRPOP parser
 
 ### What can it do?
-It can successfuly parse and execute expression evaluation, variable creation and evaluation and printing. It also has comments.
+It can successfuly parse and compile expression evaluation, variable creation and evaluation and printing. It also has comments.
 An example of what the program can do is in the `examples/simple` file
 
 ### Syntax
 - `variable_name = <expression>`
 - `print <expression>`
 
-An expression is a simple series of mathematical of mathematical operations between constants or variables, just like in most languages. They can be evaluated to a single value. For now, all values are integers in this example.
+An expression is a simple series of mathematical operations between constants or variables, just like in most languages. They can be evaluated to a single value. For now, all values are integers in this example.
 
 - Operations
   - `val1 + val2`: Addition
