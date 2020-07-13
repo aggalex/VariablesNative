@@ -12,6 +12,7 @@ lalrpop = { version = "0.18.1", features = ["lexer"] }
 [dependencies]
 lalrpop-util = "0.18.1"
 regex = "1"
+rand = "0.*"
 
 [dependencies.llvm-alt]
 git = "https://github.com/TomBebbington/llvm-rs.git"

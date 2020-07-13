@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::string::String;
 use llvm::*;
 use super::Evaluable;
@@ -30,7 +29,7 @@ impl Variable {
 }
 
 impl Evaluable for Variable {
-	fn evaluate<'a> (&self, llvm_data: &'a LLVMData) -> &'a Value {
+	fn evaluate<'a,'b:'a> (&self, llvm_data: &'a LLVMData<'a,'b>) -> &'a Value {
 		match &self.data {
 			Some(data) => (*data).evaluate (llvm_data),
 			None => match llvm_data.variables.borrow().get (&self.identifier) {

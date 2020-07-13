@@ -1,6 +1,5 @@
 // use std::error::Error;
-use std::fs::File;
-use std::io::{self, BufRead};
+use std::fs::*;
 use std::path::Path;
 use std::env;
 use std::collections::HashMap;
@@ -9,25 +8,26 @@ use std::cell::*;
 use llvm::*;
 
 #[macro_use] extern crate lalrpop_util;
+extern crate rand;
 
 mod ast;
+use ast::Evaluable;
 
 mod request;
 use request::Request;
 
 lalrpop_mod!(pub parse); // synthesized by LALRPOP
 
-pub struct LLVMData<'a> {
+pub struct LLVMData<'a, 'b:'a> {
     pub module: &'a Module,
-    pub builder: &'a mut Builder,
-    pub variables: &'a mut RefCell<HashMap<String, &'a Value>>,
+    pub builder: &'b mut Builder,
+    pub variables: &'b mut RefCell<HashMap<String, &'a Value>>,
     pub printf: &'a Function
 }
 
-fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
+fn read_file<P>(filename: &P) -> String
 where P: AsRef<Path>, {
-    let file = File::open(filename)?;
-    Ok(io::BufReader::new(file).lines())
+    read_to_string(filename).expect("Failed to open file")
 }
 
 fn main() {
@@ -72,23 +72,14 @@ fn main() {
         printf: &printf
     };
 
-    if let Ok(lines) = read_lines (args[1].to_string ()) {
-        for line in lines {
-            if let Ok(line) = line {
-                if let Some(value) = parse_line (line, &data) {
-                    data.variables.borrow_mut().insert (value.0, value.1);
-                }
-            }
-        }
-    }
+    
+    parse_ast(read_file(&args[1]), &data);
 
     data.builder.build_ret(0.compile(&context));
 
-    // The module will never verify because printf is variadic, and this LLVM library has no variadics
-
     match data.module.verify() {
         Ok(_) => println!("Done!"),
-        Err(e) => panic!("Illegal module: {}", e)
+        Err(e) => panic!("Illegal module: {}\nGenerated IR: {:?}", e, data.module)
     }
 
     println!("{:?}", data.module);
@@ -98,20 +89,32 @@ fn main() {
     module.compile(Path::new(&out_path), 0).unwrap ();
 }
 
-fn parse_line<'a> (line: String, llvm_data: &'a LLVMData<'a>) -> Option<(String, &'a Value)> {
-    match parse::StatementParser::new().parse(&line[..]) {
-        Ok(_res) => match _res {
+fn parse_ast<'a, 'b:'a> (data: String, llvm_data: &'a LLVMData<'a, 'b>) {
+    parse_statements(&(*parse::StatementsParser::new().parse(&data[..])
+                                                .unwrap_or_else(|error| { panic!("Execution Failed: {}", error) })
+                                                .borrow())
+                    , llvm_data
+    );
+}
+
+pub fn parse_statements<'a, 'b:'a> (statements: &Vec<Request>, llvm_data: &'a LLVMData<'a, 'b>) {
+    for statement in statements {
+        match statement {
             Request::PRINT(data) => {
                 llvm_data.builder.build_call(
                         llvm_data.printf, 
                         &[data.evaluate(llvm_data)]);
-                None
             }
-            Request::VARIABLE(var) => match var.data {
-                Some(value) => Some((var.identifier, value.evaluate (llvm_data))),
+            Request::VARIABLE(var) => match &var.data {
+                Some(value) => {
+                    let data = value.evaluate(llvm_data);
+                    llvm_data.variables.borrow_mut().insert (var.identifier.clone(), data);
+                },
                 None => panic!("Recieved variable creation request without value")
             }
-        },
-        Err(_res) => panic!("Execution failed: {}", _res)
+            Request::IF(branch) => {
+                branch.evaluate(llvm_data);
+            }
+        }
     }
 }

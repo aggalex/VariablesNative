@@ -735,6 +735,7 @@ dependencies = [
  "lalrpop",
  "lalrpop-util",
  "llvm-alt",
+ "rand",
  "regex",
 ]
 

@@ -1,21 +1,37 @@
 use std::str::FromStr;
 use std::string::String;
 use std::boxed::Box;
-// TODO: Make it use ast::Ast and variable::Variable
-// // use crate::actions;
 use crate::ast::Ast;
 use crate::ast::Operation;
 use crate::ast::AstData;
 use crate::ast::variable::Variable;
+use crate::ast::branch::Branch;
 use crate::request::Request;
+use std::cell::RefCell;
 
 grammar;
 
+pub Statements: RefCell<Vec<Request>> = {
+    <Statement> => RefCell::new(vec![<>]),
+    <this:Statements> ";" <s:Statement> => {
+        this.borrow_mut().push (s);
+        this
+    },
+    <Statements> ";" => (<>)
+}
+
 pub Statement: Request = {
 	<Evaluation> => Request::VARIABLE(<>),
-	<Print> => Request::PRINT(<>),
+    <Print> => Request::PRINT(<>),
+    <If> => Request::IF(<>),
 	<s:Statement> <c:Comment> => s
 }
+
+If: Branch = "if" <cond: Expression> <on_true:Scope> => Branch::new(cond, on_true, None);
+
+IfElse: Branch = "if" <cond: Expression> <on_true:Scope> "else" <on_false:Scope> => Branch::new(cond, on_true, Some(on_false));
+
+Scope: RefCell<Vec<Request>> = "{" <Statements> "}" => <>;
 
 Evaluation: Variable = {
 	<id: Identifier> "=" <val: Expression> => Variable::new_boxed(id, val)

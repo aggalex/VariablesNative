@@ -1,9 +1,8 @@
-use std::collections::HashMap;
 use llvm::*;
 use super::LLVMData;
 
+pub mod branch;
 pub mod variable;
-
 mod evaluable_int;
 
 pub type AstData = dyn Evaluable;
@@ -22,7 +21,7 @@ pub struct Ast {
 }
 
 pub trait Evaluable {
-	fn evaluate<'llvm_data> (&self, llvm_data: &'llvm_data LLVMData) -> &'llvm_data Value;
+	fn evaluate<'llvm_data, 'scope_data:'llvm_data> (&self, llvm_data: &'llvm_data LLVMData<'llvm_data,'scope_data>) -> &'llvm_data Value;
 }
 
 impl Ast {
@@ -37,7 +36,7 @@ impl Ast {
 
 impl Evaluable for Ast {
 
-	fn evaluate<'a> (&self, llvm_data: &'a LLVMData) -> &'a Value {
+	fn evaluate<'a,'b:'a> (&self, llvm_data: &'a LLVMData<'a,'b>) -> &'a Value {
 		let left = (*self.left).evaluate(llvm_data);
 		let right = (*self.right).evaluate(llvm_data);
 		
